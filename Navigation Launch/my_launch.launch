@@ -1,0 +1,48 @@
+<launch>
+	<master auto="start"/>
+
+	<param name ="use_sim_time" value="false"/>
+
+<!--- Start laser scan --> 
+
+	<node pkg="rplidar_ros" type="rplidarNode" name="rplidarNode" output="screen">
+
+	<param name="serial_port" type="string" value="/dev/ttyUSB0"/>
+
+	</node>
+
+
+
+<!--- Start arduino serial interface --> 
+
+	<node pkg="rosserial_arduino" type="serial_node.py" name="rosserial" respawn="true"  args="_port:=/dev/ttyACM0"/>
+
+<!--- Setup tramformation --> 
+	<node pkg="tf" type="static_transform_publisher" name="base_2_laser" args="0.08 0 0.09 3.14 0 0  base_link laser_frame 100" />
+
+<!--- Run odometry setup node --> 
+
+	<node pkg="odometry_node" type="odometry" name="odometryNode"   output="screen"/>
+
+<!--- Run the map server --> 
+
+	<node  pkg="map_server" type="map_server" name="map_server"  args="/home/agv01/agv/map/map3.yaml"/>
+
+<!--- Run AMCL --> 
+<include file="$(find amcl)/examples/amcl_diff.launch"/>
+
+<!--- Run move base --> 
+
+	<node pkg="move_base" type="move_base" name="move_base" respawn="true"  output="screen">
+	<rosparam file="src/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
+        <rosparam file="src/costmap_common_params.yaml" command="load" ns="local_costmap" />
+        <rosparam file="src/local_costmap_params.yaml" command="load" /> 
+	<rosparam file="src/global_costmap_params.yaml" command="load" />
+	<rosparam file="src/move_base_params.yaml" command="load" />
+	<rosparam file="src/teb_local_planner_params.yaml" command="load" /> 
+	</node>
+
+
+</launch> 
+
+
