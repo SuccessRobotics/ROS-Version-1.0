@@ -1,0 +1,179 @@
+
+
+
+pre install in Rpi3
+
+1. Ubuntu mate 18
+2. ROS Melodic Base
+4. Arduino IDE + Encoder library + ROS Library
+3. package RVIZ Rplidar Hector_SLAM rosserial navigation teb_local_planer map_server
+
+----------------------------------------------------------------------
+1. get IP address of Rashberry Pi connect to 
+***********************************************************************
+AP : success_5G
+pass: robotics
+
+***********************************************************************setup ssh & get IP
+command in terminal
+	$ sudo systemctl enable ssh.service
+	$ sudo systemctl start ssh.service
+	$ sudo dpkg-reconfigure openssh-server
+	$ hostname -I
+192.168.1.x 
+
+test remote from PC
+	$ ssh agvXX@192.168.1.XX
+password : 123456789
+
+**************************************************************************
+	$ ls /dev/tty*				<-check USB location
+	$ sudo chmod +x /dev/ttyACM0
+	$ sudo chmod 777 /dev/ttACM0
+	$ sudo adduser agvXX dialout
+
+	$ arduino --upload ~/code/test1.ino --port /dev/ttyACM0
+****************************************************************************create ROS Workspace
+	$ mkdir -p ~/ros_agv/src
+	$ cd ~/ros_agv/
+	$ catkin_make
+	$ echo "source ~/ros_agv/devel/setup.bash" >> ~/.bashrc
+	$ source ~/ros_agv/devel/setup.bash
+	$ cd src
+	$ catkin_create_pkg odometry_setup roscpp tf
+	$ catkin_create_pkg navi
+
+****************************************************************************rplidarView
+1..	$ export ROS_MASTER_URI=http://192.168.1.96:11311
+	$ export ROS_IP=192.168.1.96
+	$ roscore
+
+2.. 	$ export ROS_MASTER_URI=http://192.168.1.96:11311
+	$ export ROS_IP=192.168.1.96
+	$ sudo chmod +x /dev/ttyUSB0
+	$ sudo chmod 777 /dev/ttyUSB0
+	$ sudo adduser agv09 dialout
+	$ rosrun rplidar_ros rplidarNode
+
+pc1..	$ export ROS_MASTER_URI=http://192.168.1.96:11311
+	$ export ROS_IP=192.168.1.2
+	$ rosrun rviz rviz
+
+****************************************************************************teleOP
+1..	$ roscore
+
+2..	$ rosrun rosserial_arduino serial_node.py _port:=/dev/ttyACM0
+
+3..	$ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+
+****************************************************************************mapping
+1..	$ export ROS_MASTER_URI=http://192.168.1.XX:11311
+	$ export ROS_IP=192.168.1.XX
+	$ roscd hector_mapping/launch
+	$ sudo nano mapping_default.launch 
+-----edit mapping_default.launch --------------------------------------------------
+		<arg name="base_frame" default="base_link"/>
+  		<arg name="odom_frame" default="base_link"/>
+
+		<node pkg="tf" type="static_transform_publisher" name="map_nav_broadcaster" args="0.08 0 0.09 3.14 0 0 base_link laser 100"/>
+------------------------------------------------------------------
+	$ roscd hector_slam_launch/launch/
+	$ sudo nano tutorial.launch
+-----edit tutorial.launch---------------------------------------------
+		param name="/use_sim_time" value="false"/>
+----------------------------------------------------------------------
+	$ roslaunch hector_slam_launch tutorial.launch
+
+2..	$ export ROS_MASTER_URI=http://192.168.1.XX:11311
+	$ export ROS_IP=192.168.1.XX
+	$ roscd rplidar_ros/launch/
+	$ sudo nano rplidar.launch
+-----edit rplidar.launch---------------------------------------------
+		<param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
+----------------------------------------------------------------------
+	$ roslaunch rplidar_ros rplidar.launch
+
+PC1..	$ export ROS_MASTER_URI=http://192.168.1.XX:11311
+	$ export ROS_IP=192.168.1.2
+	$ rosrun rviz rviz
+
+3.. 	$ rosrun map_server map_saver -f mymap1
+
+
+****************************************************************************Navigation
+File level in AGV
+	agvxx
+	  |--ros_agv 				<-- catkin_make
+		|--build
+		|--devel
+		|--src  			<--catkin_create_pkg
+		    |--costmap_common_params.yaml
+		    |--local_costmap_params.yaml
+		    |--global_costmap_params.yaml
+		    |--move_base_params.yaml
+		    |--teb_local_planner_params.yaml
+		    |--base_global_planner_params.yaml
+                    |
+		    |--odometry_setup 
+		    |	|--include
+		    |	|--CMakelists.txt	<--edit for executefile
+		    |	|--package.xml
+		    |	|--src
+		    |	    |--odom.cpp		<--sudo nano odom.cpp
+	            |--navi
+			|--include
+			|--CMakelists.txt
+			|--package.xml
+			|--src
+			|--launch
+			    |--navi.launch	<--sudo nano navi.launch
+
+1..	$ roscd roscd amcl/examples/
+	$ sudo nano amcl_diff.launch
+-----edit amcl_diff.launch---------------------------------------------
+		<param name="transform_tolerance" value="2" />
+
+		<param name="transform_tolerance" value="2" />
+----------------------------------------------------------------------
+	$ cd 
+	$ export ROS_MASTER_URI=http://192.168.1.XX:11311
+	$ export ROS_IP=192.168.1.XX
+	$ cd ros_agv
+	$ roslaunch src/navi/launch/navi.launch
+
+PC1..	$ export ROS_MASTER_URI=http://192.168.1.XX:11311
+	$ export ROS_IP=192.168.1.2
+	$ rosrun rviz rviz
+
+****************************************************************************
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
